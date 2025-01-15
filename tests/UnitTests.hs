@@ -71,6 +71,7 @@ import UnitTests.KeyMapInsertWith
 import UnitTests.MonadFix
 import UnitTests.NoThunks
 import UnitTests.NullaryConstructors (nullaryConstructors)
+import UnitTests.SomeType (someTypeTests)
 import UnitTests.OptionalFields (optionalFields)
 import UnitTests.UTCTime
 
@@ -277,6 +278,7 @@ showOptions =
         ++   "fieldLabelModifier =~ \"exampleField\""
         ++ ", constructorTagModifier =~ \"ExampleConstructor\""
         ++ ", allNullaryToStringTag = True"
+        ++ ", nullaryToObject = False"
         ++ ", omitNothingFields = False"
         ++ ", allowOmittedFields = True"
         ++ ", sumEncoding = TaggedObject {tagFieldName = \"tag\", contentsFieldName = \"contents\"}"
@@ -541,6 +543,7 @@ tests = testGroup "unit" [
   , hashableLaws
   , testGroup "Object construction" $ fmap (testCase "-") objectConstruction
   , testGroup "Nullary constructors" $ fmap (testCase "-") nullaryConstructors
+  , testGroup "SomeType unit tests" $ fmap (testCase "-") someTypeTests
   , fromJSONKeyTests
   , optionalFields
   , testCase "PR #455" pr455

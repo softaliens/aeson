@@ -60,6 +60,47 @@ thNullaryToEncodingObjectWithSingleField =
 thNullaryParseJSONObjectWithSingleField :: Value -> Parser Nullary
 thNullaryParseJSONObjectWithSingleField = $(mkParseJSON optsObjectWithSingleField ''Nullary)
 
+
+thNullaryToJSONObjectWithSingleFieldTagged :: Nullary -> Value
+thNullaryToJSONObjectWithSingleFieldTagged = $(mkToJSON optsObjectWithSingleFieldTagged ''Nullary)
+
+thNullaryToEncodingObjectWithSingleFieldTagged :: Nullary -> Encoding
+thNullaryToEncodingObjectWithSingleFieldTagged = $(mkToEncoding optsObjectWithSingleFieldTagged ''Nullary)
+
+thNullaryParseJSONObjectWithSingleFieldTagged :: Value -> Parser Nullary
+thNullaryParseJSONObjectWithSingleFieldTagged = $(mkParseJSON optsObjectWithSingleFieldTagged ''Nullary)
+
+
+thNullaryToJSONOWSFRejectUnknown :: Nullary -> Value
+thNullaryToJSONOWSFRejectUnknown = $(mkToJSON optsOWSFRejectUnknown ''Nullary)
+
+thNullaryToEncodingOWSFRejectUnknown :: Nullary -> Encoding
+thNullaryToEncodingOWSFRejectUnknown = $(mkToEncoding optsOWSFRejectUnknown ''Nullary)
+
+thNullaryParseJSONOWSFRejectUnknown :: Value -> Parser Nullary
+thNullaryParseJSONOWSFRejectUnknown = $(mkParseJSON optsOWSFRejectUnknown ''Nullary)
+
+
+thNullaryToJSONOWSFNullaryToObject :: Nullary -> Value
+thNullaryToJSONOWSFNullaryToObject = $(mkToJSON optsOWSFNullaryToObject ''Nullary)
+
+thNullaryToEncodingOWSFNullaryToObject :: Nullary -> Encoding
+thNullaryToEncodingOWSFNullaryToObject = $(mkToEncoding optsOWSFNullaryToObject ''Nullary)
+
+thNullaryParseJSONOWSFNullaryToObject :: Value -> Parser Nullary
+thNullaryParseJSONOWSFNullaryToObject = $(mkParseJSON optsOWSFNullaryToObject ''Nullary)
+
+
+thNullaryToJSONOWSFNullaryToObjectRejectUnknown :: Nullary -> Value
+thNullaryToJSONOWSFNullaryToObjectRejectUnknown = $(mkToJSON optsOWSFNullaryToObjectRejectUnknown ''Nullary)
+
+thNullaryToEncodingOWSFNullaryToObjectRejectUnknown :: Nullary -> Encoding
+thNullaryToEncodingOWSFNullaryToObjectRejectUnknown = $(mkToEncoding optsOWSFNullaryToObjectRejectUnknown ''Nullary)
+
+thNullaryParseJSONOWSFNullaryToObjectRejectUnknown :: Value -> Parser Nullary
+thNullaryParseJSONOWSFNullaryToObjectRejectUnknown = $(mkParseJSON optsOWSFNullaryToObjectRejectUnknown ''Nullary)
+
+
 gNullaryToJSONString :: Nullary -> Value
 gNullaryToJSONString = genericToJSON defaultOptions
 
@@ -98,6 +139,47 @@ gNullaryToEncodingObjectWithSingleField = genericToEncoding optsObjectWithSingle
 
 gNullaryParseJSONObjectWithSingleField :: Value -> Parser Nullary
 gNullaryParseJSONObjectWithSingleField = genericParseJSON optsObjectWithSingleField
+
+
+gNullaryToJSONObjectWithSingleFieldTagged :: Nullary -> Value
+gNullaryToJSONObjectWithSingleFieldTagged = genericToJSON optsObjectWithSingleFieldTagged
+
+gNullaryToEncodingObjectWithSingleFieldTagged :: Nullary -> Encoding
+gNullaryToEncodingObjectWithSingleFieldTagged = genericToEncoding optsObjectWithSingleFieldTagged
+
+gNullaryParseJSONObjectWithSingleFieldTagged :: Value -> Parser Nullary
+gNullaryParseJSONObjectWithSingleFieldTagged = genericParseJSON optsObjectWithSingleFieldTagged
+
+
+gNullaryToJSONOWSFRejectUnknown :: Nullary -> Value
+gNullaryToJSONOWSFRejectUnknown = genericToJSON optsOWSFRejectUnknown
+
+gNullaryToEncodingOWSFRejectUnknown :: Nullary -> Encoding
+gNullaryToEncodingOWSFRejectUnknown = genericToEncoding optsOWSFRejectUnknown
+
+gNullaryParseJSONOWSFRejectUnknown :: Value -> Parser Nullary
+gNullaryParseJSONOWSFRejectUnknown = genericParseJSON optsOWSFRejectUnknown
+
+
+gNullaryToJSONOWSFNullaryToObject :: Nullary -> Value
+gNullaryToJSONOWSFNullaryToObject = genericToJSON optsOWSFNullaryToObject
+
+gNullaryToEncodingOWSFNullaryToObject :: Nullary -> Encoding
+gNullaryToEncodingOWSFNullaryToObject = genericToEncoding optsOWSFNullaryToObject
+
+gNullaryParseJSONOWSFNullaryToObject :: Value -> Parser Nullary
+gNullaryParseJSONOWSFNullaryToObject = genericParseJSON optsOWSFNullaryToObject
+
+
+gNullaryToJSONOWSFNullaryToObjectRejectUnknown :: Nullary -> Value
+gNullaryToJSONOWSFNullaryToObjectRejectUnknown = genericToJSON optsOWSFNullaryToObjectRejectUnknown
+
+gNullaryToEncodingOWSFNullaryToObjectRejectUnknown :: Nullary -> Encoding
+gNullaryToEncodingOWSFNullaryToObjectRejectUnknown = genericToEncoding optsOWSFNullaryToObjectRejectUnknown
+
+gNullaryParseJSONOWSFNullaryToObjectRejectUnknown :: Value -> Parser Nullary
+gNullaryParseJSONOWSFNullaryToObjectRejectUnknown = genericParseJSON optsOWSFNullaryToObjectRejectUnknown
+
 
 keyOptions :: JSONKeyOptions
 keyOptions = defaultJSONKeyOptions { keyModifier = ('k' :) }
@@ -181,6 +263,22 @@ thSomeTypeLiftParseJSONObjectWithSingleField :: LiftParseJSON SomeType a
 thSomeTypeLiftParseJSONObjectWithSingleField = $(mkLiftParseJSON optsObjectWithSingleField ''SomeType)
 
 
+thSomeTypeToJSONObjectWithSingleFieldTagged :: SomeType Int -> Value
+thSomeTypeToJSONObjectWithSingleFieldTagged = $(mkToJSON optsObjectWithSingleFieldTagged ''SomeType)
+
+thSomeTypeToEncodingObjectWithSingleFieldTagged :: SomeType Int -> Encoding
+thSomeTypeToEncodingObjectWithSingleFieldTagged = $(mkToEncoding optsObjectWithSingleFieldTagged ''SomeType)
+
+thSomeTypeParseJSONObjectWithSingleFieldTagged :: Value -> Parser (SomeType Int)
+thSomeTypeParseJSONObjectWithSingleFieldTagged = $(mkParseJSON optsObjectWithSingleFieldTagged ''SomeType)
+
+thSomeTypeLiftToJSONObjectWithSingleFieldTagged :: LiftToJSON SomeType a
+thSomeTypeLiftToJSONObjectWithSingleFieldTagged = $(mkLiftToJSON optsObjectWithSingleFieldTagged ''SomeType)
+
+thSomeTypeLiftParseJSONObjectWithSingleFieldTagged :: LiftParseJSON SomeType a
+thSomeTypeLiftParseJSONObjectWithSingleFieldTagged = $(mkLiftParseJSON optsObjectWithSingleFieldTagged ''SomeType)
+
+
 gSomeTypeToJSON2ElemArray :: SomeType Int -> Value
 gSomeTypeToJSON2ElemArray = genericToJSON opts2ElemArray
 
@@ -236,6 +334,22 @@ gSomeTypeLiftToJSONObjectWithSingleField = genericLiftToJSON optsObjectWithSingl
 
 gSomeTypeLiftParseJSONObjectWithSingleField :: LiftParseJSON SomeType a
 gSomeTypeLiftParseJSONObjectWithSingleField = genericLiftParseJSON optsObjectWithSingleField
+
+
+gSomeTypeToJSONObjectWithSingleFieldTagged :: SomeType Int -> Value
+gSomeTypeToJSONObjectWithSingleFieldTagged = genericToJSON optsObjectWithSingleFieldTagged
+
+gSomeTypeToEncodingObjectWithSingleFieldTagged :: SomeType Int -> Encoding
+gSomeTypeToEncodingObjectWithSingleFieldTagged = genericToEncoding optsObjectWithSingleFieldTagged
+
+gSomeTypeParseJSONObjectWithSingleFieldTagged :: Value -> Parser (SomeType Int)
+gSomeTypeParseJSONObjectWithSingleFieldTagged = genericParseJSON optsObjectWithSingleFieldTagged
+
+gSomeTypeLiftToJSONObjectWithSingleFieldTagged :: LiftToJSON SomeType a
+gSomeTypeLiftToJSONObjectWithSingleFieldTagged = genericLiftToJSON optsObjectWithSingleFieldTagged
+
+gSomeTypeLiftParseJSONObjectWithSingleFieldTagged :: LiftParseJSON SomeType a
+gSomeTypeLiftParseJSONObjectWithSingleFieldTagged = genericLiftParseJSON optsObjectWithSingleFieldTagged
 
 
 gSomeTypeToJSONOmitNothingFields :: SomeType Int -> Value

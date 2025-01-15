@@ -839,8 +839,12 @@ instance ToJSON1 f => GToJSON' Value One (Rec1 f) where
     {-# INLINE gToJSON #-}
 
 instance GToJSON' Value arity U1 where
-    -- Empty constructors are encoded to an empty array:
-    gToJSON _opts _ _ = emptyArray
+    -- Empty constructors are encoded to an empty array or an empty object,
+    -- depending on nullaryToObject option (default is array)
+    gToJSON opts _ _
+        | nullaryToObject opts = emptyObject
+        | otherwise = emptyArray
+
     {-# INLINE gToJSON #-}
 
 instance ( WriteProduct arity a, WriteProduct arity b
@@ -893,8 +897,11 @@ instance ToJSON1 f => GToJSON' Encoding One (Rec1 f) where
     {-# INLINE gToJSON #-}
 
 instance GToJSON' Encoding arity U1 where
-    -- Empty constructors are encoded to an empty array:
-    gToJSON _opts _ _ = E.emptyArray_
+    -- Empty constructors are encoded to an empty array or an empty object,
+    -- depending on nullaryToObject option (default is array)
+    gToJSON opts _ _
+        | nullaryToObject opts = E.emptyObject_
+        | otherwise = E.emptyArray_
     {-# INLINE gToJSON #-}
 
 instance ( EncodeProduct  arity a
@@ -960,7 +967,7 @@ nonAllNullarySumToJSON opts targs =
       TaggedObject{..}      ->
         taggedObject opts targs (Key.fromString tagFieldName) (Key.fromString contentsFieldName)
 
-      ObjectWithSingleField ->
+      ObjectWithSingleField {} ->
         (unTagged :: Tagged ObjectWithSingleField enc -> enc)
           . sumToJSON' opts targs
 
@@ -1271,13 +1278,19 @@ instance {-# OVERLAPPABLE #-} (GToJSON' Encoding arity a) => EncodeProduct arity
 instance ( GToJSON'   enc arity a
          , ConsToJSON enc arity a
          , FromPairs  enc pairs
-         , KeyValuePair  enc pairs
+         , KeyValuePair enc pairs
+         , BoolEnc enc
          , Constructor c
          ) => SumToJSON' ObjectWithSingleField enc arity (C1 c a)
   where
     sumToJSON' opts targs =
-      Tagged . fromPairs . (typ `pair`) . gToJSON opts targs
+      Tagged . fromPairs . addTag . (typ `pair`) . gToJSON opts targs
         where
+          addTag = case sumEncoding opts of
+              ObjectWithSingleField {tagFieldName_ = Just tfn} ->
+                let p = pair (Key.fromString tfn) (boolEnc @enc True)
+                in (p <>)
+              _ -> id
           typ = Key.fromString $ constructorTagModifier opts $
                          conName (undefined :: t c a p)
     {-# INLINE sumToJSON' #-}
@@ -2873,3 +2886,14 @@ instance (v ~ Value) => KeyValuePair v (DList Pair) where
 instance (e ~ Encoding) => KeyValuePair e Series where
     pair = E.pair
     {-# INLINE pair #-}
+
+class BoolEnc enc where
+    boolEnc :: Bool -> enc
+
+instance BoolEnc Value where
+    boolEnc = Bool
+    {-# INLINE boolEnc #-}
+
+instance BoolEnc Encoding where
+    boolEnc = E.bool
+    {-# INLINE boolEnc #-}

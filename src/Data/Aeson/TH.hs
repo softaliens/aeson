@@ -5,6 +5,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
+{-# LANGUAGE TupleSections #-}
 
 {-|
 Module:      Data.Aeson.TH
@@ -414,8 +415,10 @@ sumToValue letInsert target opts multiCons nullary conName value pairs
                 content = pairs contentsFieldName
             in fromPairsE target $
               if nullary then tag else infixApp tag [|(Monoid.<>)|] content
-          ObjectWithSingleField ->
-            objectE letInsert target [(conString opts conName, value)]
+          ObjectWithSingleField {tagFieldName_} ->
+            objectE letInsert target $ addTag [(conString opts conName, value)]
+            where
+              addTag = maybe id (\tfn -> ((tfn, bool target True) :)) tagFieldName_
           UntaggedValue | nullary -> conStr target opts conName
           UntaggedValue -> value
     | otherwise = value
@@ -438,7 +441,9 @@ argsToValue letInsert target jc tvMap opts multiCons
                -- Single argument is directly converted.
                [e] -> e
                -- Zero and multiple arguments are converted to a JSON array.
-               es -> array target es
+               es
+                 | nullaryToObject opts && null es -> objectE letInsert target []
+                 | otherwise -> array target es
 
     match (conP conName $ map varP args)
           (normalB $ opaqueSumToValue letInsert target opts multiCons (null argTys') conName js)
@@ -504,6 +509,10 @@ infixr 6 <^>
 (<%>) :: ExpQ -> ExpQ -> ExpQ
 (<%>) a b = a <^> [|E.comma|] <^> b
 infixr 4 <%>
+
+bool :: ToJSONFun -> Bool -> ExpQ
+bool Encoding v = [|E.bool v|]
+bool Value v = [|Bool v|]
 
 -- | Wrap a list of quoted 'Value's in a quoted 'Array' (of type 'Value').
 array :: ToJSONFun -> [ExpQ] -> ExpQ
@@ -718,8 +727,8 @@ consFromJSON jc tName opts instTys cons = do
           TaggedObject {tagFieldName, contentsFieldName} ->
             parseObject $ parseTaggedObject tvMap tagFieldName contentsFieldName
           UntaggedValue -> error "UntaggedValue: Should be handled already"
-          ObjectWithSingleField ->
-            parseObject $ parseObjectWithSingleField tvMap
+          ObjectWithSingleField tagFieldName_ ->
+            parseObject $ parseObjectWithSingleField tagFieldName_ tvMap
           TwoElemArray ->
             [ do arr <- newName "array"
                  match (conP 'Array [varP arr])
@@ -825,21 +834,50 @@ consFromJSON jc tName opts instTys cons = do
                   ]
            )
 
-    parseObjectWithSingleField tvMap obj = do
-      conKey <- newName "conKeyZ"
-      conVal <- newName "conValZ"
-      caseE ([e|KM.toList|] `appE` varE obj)
-            [ match (listP [tupP [varP conKey, varP conVal]])
-                    (normalB $ parseContents tvMap conKey (Right conVal) 'conNotFoundFailObjectSingleField [|Key.fromString|] [|Key.toString|])
-                    []
-            , do other <- newName "other"
-                 match (varP other)
-                       (normalB $ [|wrongPairCountFail|]
+    parseObjectWithSingleField tagFieldName_ tvMap obj =
+      caseE ([e|KM.toList|] `appE` varE obj) $
+            case tagFieldName_ of
+                Just tfn -> [match1Tuple, match2Tuple tfn, matchOther]
+                Nothing -> [match1Tuple, matchOther]
+      where
+        parseKey key val = parseContents tvMap key (Right val) 'conNotFoundFailObjectSingleField [|Key.fromString|] [|Key.toString|]
+        match1Tuple = do
+            conKey <- newName "conKeyZ"
+            conVal <- newName "conValZ"
+            match (listP [tupP [varP conKey, varP conVal]])
+                  (normalB $ parseKey conKey conVal)
+                  []
+        match2Tuple tfn = do
+            key1 <- newName "keyZ1"
+            val1 <- newName "valZ1"
+            key2 <- newName "keyZ2"
+            val2 <- newName "valZ2"
+            match (listP [tupP [varP key1, varP val1], tupP [varP key2, varP val2]])
+                ( guardedB
+                    [ liftM2 (,) (owsfTag key1 val1) (parseKey key2 val2)
+                    , liftM2 (,) (owsfTag key2 val2) (parseKey key1 val1)
+                    , liftM2 (,) (normalG [e|otherwise|])
+                                 ([|wrongPairCountFailTagged|]
                                   `appE` litE (stringL $ show tName)
-                                  `appE` ([|show . length|] `appE` varE other)
-                       )
-                       []
-            ]
+                                  `appE` litE (stringL tfn)
+                                  `appE` litE (stringL "2")
+                                 )
+                    ]
+                )
+                []
+          where
+            owsfTag key val =
+                normalG $ varE '(&&)
+                          `appE` (varE '(==) `appE` ([|Key.toString|] `appE` varE key) `appE` stringE tfn)
+                          `appE` (varE '(==) `appE` varE val `appE` [|Bool True|])
+        matchOther = do
+          other <- newName "other"
+          match (varP other)
+                (normalB $ [|wrongPairCountFail|]
+                          `appE` litE (stringL $ show tName)
+                          `appE` ([|show . length|] `appE` varE other)
+                )
+                []
 
     parseContents tvMap conKey contents errorFun pack unpack=
         caseE (varE conKey)
@@ -873,11 +911,22 @@ consFromJSON jc tName opts instTys cons = do
                       []
               ]
 
-parseNullaryMatches :: Name -> Name -> [Q Match]
-parseNullaryMatches tName conName =
-    [ do arr <- newName "arr"
-         match (conP 'Array [varP arr])
-               (guardedB
+parseNullaryMatches :: Name -> Name -> Options -> [Q Match]
+parseNullaryMatches tName conName opts
+    | nullaryToObject opts =
+        [ if rejectUnknownFields opts then matchEmptyObject else matchAnyObject
+        , matchFailed tName conName "Object"
+        ]
+    | otherwise =
+        [ matchEmptyArray
+        , matchFailed tName conName "Array"
+        ]
+  where
+    matchEmptyArray = do
+        arr <- newName "arr"
+        match
+            (conP 'Array [varP arr])
+            (guardedB
                 [ liftM2 (,) (normalG $ [|V.null|] `appE` varE arr)
                              ([|pure|] `appE` conE conName)
                 , liftM2 (,) (normalG [|otherwise|])
@@ -889,10 +938,31 @@ parseNullaryMatches tName conName =
                                 )
                              )
                 ]
-               )
-               []
-    , matchFailed tName conName "Array"
-    ]
+            )
+            []
+    matchAnyObject = do
+        match
+            (conP 'Object [wildP])
+            (normalB $ [|pure|] `appE` conE conName)
+            []
+    matchEmptyObject = do
+        obj <- newName "obj"
+        match
+            (conP 'Object [varP obj])
+            (guardedB
+                [ liftM2 (,) (normalG $ [|KM.null|] `appE` varE obj)
+                            ([|pure|] `appE` conE conName)
+                , liftM2 (,) (normalG [|otherwise|])
+                            (parseTypeMismatch tName conName
+                                (litE $ stringL "an empty Object")
+                                (infixApp (litE $ stringL "Object of size ")
+                                        [|(++)|]
+                                        ([|show . KM.size|] `appE` varE obj)
+                                )
+                            )
+                ]
+            )
+            []
 
 parseUnaryMatches :: JSONClass -> TyVarMap -> Type -> Name -> [Q Match]
 parseUnaryMatches jc tvMap argTy conName =
@@ -986,12 +1056,12 @@ parseArgs _ _ _ _
                   , constructorFields  = [] }
   (Left _) =
     [|pure|] `appE` conE conName
-parseArgs _ _ tName _
+parseArgs _ _ tName opts
   ConstructorInfo { constructorName    = conName
                   , constructorVariant = NormalConstructor
                   , constructorFields  = [] }
   (Right valName) =
-    caseE (varE valName) $ parseNullaryMatches tName conName
+    caseE (varE valName) $ parseNullaryMatches tName conName opts
 
 -- Unary constructors.
 parseArgs jc tvMap _ _
@@ -1146,6 +1216,11 @@ wrongPairCountFail :: String -> String -> Parser fail
 wrongPairCountFail t n =
     fail $ printf "When parsing %s expected an Object with a single tag/contents pair but got %s pairs."
                   t n
+
+wrongPairCountFailTagged :: String -> String -> String -> Parser fail
+wrongPairCountFailTagged t tfn n =
+    fail $ printf "When parsing %s expected an Object with a single tag/contents pair and an optional tag %s, but got %s pairs."
+                  t tfn n
 
 noStringFail :: String -> String -> Parser fail
 noStringFail t o = fail $ printf "When parsing %s expected String but got %s." t o
